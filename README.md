@@ -1,1 +1,1 @@
-### Quartic Equation Solver
+# Quartic Equation Solver
