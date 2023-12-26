@@ -51,18 +51,14 @@ double modulus(complex z) {
 complex pow(complex z, double n) {
     // Convert Cartesian Form Into Polar Form
     double r = modulus(z);
-    double theta_real = acos(z.real / r);
-    double theta_imaginary = theta_real;
-    if ((sign(z.imaginary)) < 0.0) {
-        theta_imaginary = asin(z.imaginary / r);
-    }
+    double theta = atan2(z.imaginary, z.real);
 
     // De Moivre's Theorem
-    complex new_z = complex(cos(n * theta_real) * pow(r, n), sin(n * theta_imaginary) * pow(r, n));
-    if ((new_z.real < 1e-8) and (new_z.real > -1e-8)) {
+    complex new_z = complex(cos(n * theta) * pow(r, n), sin(n * theta) * pow(r, n));
+    if ((new_z.real < 1e-12) and (new_z.real > -1e-12)) {
         new_z.real = 0.0;
     }
-    if ((new_z.imaginary < 1e-8) and (new_z.imaginary > -1e-8)) {
+    if ((new_z.imaginary < 1e-12) and (new_z.imaginary > -1e-12)) {
         new_z.imaginary = 0.0;
     }
 
@@ -70,7 +66,7 @@ complex pow(complex z, double n) {
 }
 
 void solveQuadratic(double a, complex b, complex c, complex &r1, complex &r2) {
-    complex sqrtdiscriminant = pow(add(multiply(b, b),invert(multiply(c, 4.0 * a))), 0.5);
+    complex sqrtdiscriminant = pow(add(multiply(b, b), invert(multiply(c, 4.0 * a))), 0.5);
     r1 = divide(add(invert(sqrtdiscriminant), invert(b)), 2.0 * a);
     r2 = divide(add(sqrtdiscriminant, invert(b)), 2.0 * a);
 }
@@ -99,7 +95,12 @@ void solveCubic(double a, double b, double c, double d, complex &r1, complex &r2
     }
 }
 
-void solveQuartic(double alpha, double beta, double gamma, double delta, complex &a, complex &b, complex &c, complex &d) {
+void solveQuartic(double a4, double a3, double a2, double a1, double a0, complex &a, complex &b, complex &c, complex &d) {
+    double alpha = a3 / a4;
+	double beta = a2 / a4;
+	double gamma = a1 / a4;
+	double delta = a0 / a4;
+
     complex r1 = complex(0.0, 0.0);
     complex r2 = complex(0.0, 0.0);
     complex r3 = complex(0.0, 0.0);
@@ -125,7 +126,7 @@ int main() {
     complex r2 = complex(0.0, 0.0);
     complex r3 = complex(0.0, 0.0);
     complex r4 = complex(0.0, 0.0);
-    solveQuartic(-2.0, 0.0, 2.0, 0.0, r1, r2, r3, r4);
+    solveQuartic(1.0, 1.0, -1.0, 2.0, 1.0, r1, r2, r3, r4);
     std::cout << r1.real << " + " << r1.imaginary << "i" << std::endl;
     std::cout << r2.real << " + " << r2.imaginary << "i" << std::endl;
     std::cout << r3.real << " + " << r3.imaginary << "i" << std::endl;
