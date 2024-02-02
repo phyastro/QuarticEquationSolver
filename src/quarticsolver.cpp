@@ -1,6 +1,8 @@
 #include <iostream>
 #include <math.h>
 
+static const bool SOLVERTYPEREAL = true;
+
 #define PI 3.14159265358979323846
 
 double sign(double x) {
@@ -14,6 +16,32 @@ double sign(double x) {
 struct complex{
     double real;
     double imaginary;
+};
+
+struct vec3{
+    double x;
+    double y;
+    double z;
+};
+
+struct vec4{
+    double x;
+    double y;
+    double z;
+    double w;
+};
+
+struct bvec3{
+    bool x;
+    bool y;
+    bool z;
+};
+
+struct bvec4{
+    bool x;
+    bool y;
+    bool z;
+    bool w;
 };
 
 complex add(complex z, double c) {
@@ -121,16 +149,99 @@ void solveQuartic(double a4, double a3, double a2, double a1, double a0, complex
     d = divide(r31, a);
 }
 
+bvec3 solveCubic(double b, double c, double d, vec3 &roots) {
+    // https://arxiv.org/abs/1903.10041
+    // Solves Cubic Equation By Combining Two Different Methods To Find Real Roots
+    double bdiv3 = b / 3.0;
+    double Q = c / 3.0 - bdiv3 * bdiv3;
+    double R = 0.5 * bdiv3 * c - bdiv3 * bdiv3 * bdiv3 - 0.5 * d;
+    if ((Q == 0.0) && (R == 0.0)) {
+        // If All The Roots Of The Cubic Equation Are Equal
+        roots = {-bdiv3, -bdiv3, -bdiv3};
+        return {true, true, true};
+    }
+    double D = Q * Q * Q + R * R;
+    if (D > 0.0) {
+        double S = cbrt(R + sqrt(D));
+        double T = cbrt(R - sqrt(D));
+        roots.x = S + T - bdiv3;
+        return {true, false, false};
+    }
+    double sqrtnegQ = sqrt(-Q);
+    double thetadiv3 = acos(R / (sqrtnegQ * sqrtnegQ * sqrtnegQ)) / 3.0;
+    roots.x = 2.0 * sqrtnegQ * cos(thetadiv3) - bdiv3;
+    roots.y = 2.0 * sqrtnegQ * cos(thetadiv3 + 2.0 * PI / 3.0) - bdiv3;
+    roots.z = 2.0 * sqrtnegQ * cos(thetadiv3 + 4.0 * PI / 3.0) - bdiv3;
+    return {true, true, true};
+}
+
+bvec4 solveQuartic(double a, double b, double c, double d, double e, vec4 &roots) {
+    // https://www.mdpi.com/2227-7390/10/14/2377
+    // Solves Quartic Equation By Using The Method Given In The Above Paper
+    double inva = 1.0 / a;
+    double inva2 = inva * 0.5;
+    double inva2a2 = inva2 * inva2;
+    double bb = b * b;
+    double p = -1.5 * bb * inva2a2 + c * inva;
+    double q = bb * b * inva2a2 * inva2 - b * c * inva * inva2 + d * inva;
+    double r = -0.1875 * bb * bb * inva2a2 * inva2a2 + 0.5 * c * bb * inva2a2 * inva2 - b * d * inva2a2 + e * inva;
+    vec3 s = {0.0, 0.0, 0.0};
+    solveCubic(0.5 * -p, -r, 0.5 * p * r - 0.125 * q * q, s);
+    double s2subp = 2.0 * s.x - p;
+    if (s2subp < 0.0) {
+        return {false, false, false, false};
+    }
+    double invs2subp= -2.0 * s.x - p;
+    double sqrts2subp = sqrt(s2subp);
+    double q2divsqrt = 2.0 * q / sqrts2subp;
+    double invaddq2div = invs2subp + q2divsqrt;
+    double invsubq2div = invs2subp - q2divsqrt;
+    double bdiv4a = 0.25 * inva * b;
+    bvec4 isReal = {false, false, false, false};
+    if (invaddq2div >= 0.0) {
+        double sqrtinvadd = sqrt(invaddq2div);
+        roots.x = 0.5 * (-sqrts2subp + sqrtinvadd) - bdiv4a;
+        roots.y = 0.5 * (-sqrts2subp - sqrtinvadd) - bdiv4a;
+        isReal.x = true;
+        isReal.y = true;
+    }
+    if (invsubq2div >= 0.0) {
+        double sqrtinvsub = sqrt(invsubq2div);
+        roots.z = 0.5 * (sqrts2subp + sqrtinvsub) - bdiv4a;
+        roots.w = 0.5 * (sqrts2subp - sqrtinvsub) - bdiv4a;
+        isReal.z = true;
+        isReal.w = true;
+    }
+    return isReal;
+}
+
 int main() {
-    complex r1 = complex(0.0, 0.0);
-    complex r2 = complex(0.0, 0.0);
-    complex r3 = complex(0.0, 0.0);
-    complex r4 = complex(0.0, 0.0);
-    solveQuartic(1.0, 1.0, -1.0, 2.0, 1.0, r1, r2, r3, r4);
-    std::cout << r1.real << " + " << r1.imaginary << "i" << std::endl;
-    std::cout << r2.real << " + " << r2.imaginary << "i" << std::endl;
-    std::cout << r3.real << " + " << r3.imaginary << "i" << std::endl;
-    std::cout << r4.real << " + " << r4.imaginary << "i" << std::endl;
+    if (!SOLVERTYPEREAL) {
+        // Complex Roots Solver For Quartic Equation With Real Coefficients
+        complex r1 = complex(0.0, 0.0);
+        complex r2 = complex(0.0, 0.0);
+        complex r3 = complex(0.0, 0.0);
+        complex r4 = complex(0.0, 0.0);
+        solveQuartic(0.01, 1.0, -1.0, 2.0, 1.0, r1, r2, r3, r4);
+        std::cout << r1.real << " + " << r1.imaginary << "i" << std::endl;
+        std::cout << r2.real << " + " << r2.imaginary << "i" << std::endl;
+        std::cout << r3.real << " + " << r3.imaginary << "i" << std::endl;
+        std::cout << r4.real << " + " << r4.imaginary << "i" << std::endl;
+    }
+
+    if (SOLVERTYPEREAL) {
+        // Real Roots Solver For Quartic Equation With Real Coefficients
+        vec4 roots = {0.0, 0.0, 0.0, 0.0};
+        bvec4 isReal = solveQuartic(1.5, 1.5, -1.9, -0.5, 0.3, roots);
+        if (isReal.x)
+            std::cout << roots.x << std::endl;
+        if (isReal.y)
+            std::cout << roots.y << std::endl;
+        if (isReal.z)
+            std::cout << roots.z << std::endl;
+        if (isReal.w)
+            std::cout << roots.w << std::endl;
+    }
 
     return 0;
 }
